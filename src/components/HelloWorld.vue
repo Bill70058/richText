@@ -1,58 +1,99 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+  <div>
+    <ckeditor v-model="formData.floorText"
+              :editor="editor"
+              :config="editorConfig"
+              @ready="onReady" />
   </div>
 </template>
 
 <script>
+import DecoupledEditor from '@ckeditor/ckeditor5-build-decoupled-document'
+import CKEditor from '@ckeditor/ckeditor5-vue'
+import '@ckeditor/ckeditor5-build-decoupled-document/build/translations/zh-cn.js'
 export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
+  components: {
+    ckeditor: CKEditor.component
+  },
+  data () {
+    return {
+      formData: {},
+      editorConfig: {
+        removePlugins: ['MediaEmbed'],
+        language: 'zh-cn',
+        ckfinder: {
+          'uploaded': 1,
+          'url': '/'
+        },
+        // plugins: [Autoformat, Table, TableToolbar, PasteFromOffice],
+        toolbar: [
+          'heading',
+          'fontSize',
+          'highlight',
+          'fontFamily',
+          'alignment',
+          'imageUpload',
+          'insertTable',
+          'bold',
+          'underline',
+          'increaseIndent',
+          'decreaseIndent',
+          'bulletedList',
+          'numberedList',
+          'imageStyle:full',
+          'imageStyle:alignLeft',
+          'imageStyle:alignRight',
+          'undo', 'redo'
+        ],
+        fontSize: {
+          options: [14, 16, 'default', 20, 22, 24, 26, 28, 32, 48]
+        },
+        fontFamily: {
+          options: ['宋体', '仿宋', '微软雅黑', '黑体', '仿宋_GB2312', '楷体', '隶书', '幼圆']
+        },
+        table: {
+          contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+        },
+        // indentBlock: {
+        //     offset: 2,
+        //     unit: 'em'
+        // }
+        borderStyle: "black"
+      },
+      editor: DecoupledEditor,
+    }
+  },
+  methods: {
+    onReady (editor) {
+      editor.ui.getEditableElement().parentElement.insertBefore(
+        editor.ui.view.toolbar.element,
+        editor.ui.getEditableElement()
+      )
+      editor.plugins.get('FileRepository').createUploadAdapter = loader => {
+        return {
+          upload: async () => {
+            return await loader.file.then(f => {
+              const F = new FileReader()
+              // F.readAsArrayBuffer(f);
+              F.readAsDataURL(f)
+              return new Promise(resolve => {
+                F.onload = function () {
+                  resolve({ bufAsArray: F.result.split(',')[1], file: f })
+                }
+              })
+            }).then(v => {
+              console.log('v', v)
+              // 执行上传上传
+              return this.uploadImgHook(v)
+              // 返回标准格式
+              /* return {
+                default: 'http://mmcl.maoming.gov.cn/ys/css/img/BG.png'
+              }*/
+            })
+          }
+        }
+      }
+    }
   }
 }
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
-</style>
